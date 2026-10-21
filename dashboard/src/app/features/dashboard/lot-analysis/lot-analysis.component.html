@@ -1,0 +1,255 @@
+<div class="lots-page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Analyse par lot</h1>
+      <p class="page-sub">Suivi des lots de production et traçabilité des résultats</p>
+    </div>
+    <button class="btn-refresh" (click)="loadAll()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Actualiser
+    </button>
+  </div>
+
+  <div class="error-banner" *ngIf="hasError">
+    ⚠️ Impossible de joindre le backend. Vérifiez localhost:3000.
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" *ngIf="!isLoading">
+    <div class="kpi-card accent-blue">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Total lots</span>
+        <span class="kpi-value">{{ totalLots | number }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card accent-red">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Lots critiques</span>
+        <span class="kpi-value">{{ lotsCritiques }}</span>
+        <span class="kpi-unit">MDR &gt; 15%</span>
+      </div>
+    </div>
+
+    <div class="kpi-card accent-amber">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6"  y1="20" x2="6"  y2="14"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">MDR moyen</span>
+        <span class="kpi-value">{{ mdrMoyen }}%</span>
+      </div>
+      <div class="kpi-bar-wrap">
+        <div class="kpi-bar-fill" [style.width.%]="mdrMoyen"
+             [class.bar-high]="mdrMoyen > 15"
+             [class.bar-med]="mdrMoyen > 10 && mdrMoyen <= 15"
+             [class.bar-ok]="mdrMoyen <= 10">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpi-grid" *ngIf="isLoading">
+    <div class="kpi-card skeleton" *ngFor="let i of [1,2,3]"></div>
+  </div>
+
+  <!-- Top problématiques + Filtres & liste -->
+  <div class="main-row">
+
+    <!-- Top 5 lots critiques -->
+    <div class="chart-card side-card">
+      <div class="chart-header"><h3>Top 5 lots critiques</h3></div>
+      <div class="top-list" *ngIf="lotsTopProblematic.length > 0">
+        <div class="top-item" *ngFor="let l of lotsTopProblematic; let i = index"
+             (click)="openDetail(l.id_lot)" class="top-item clickable">
+          <div class="top-rank" [class.rank-1]="i===0" [class.rank-2]="i===1" [class.rank-3]="i===2">
+            {{ i + 1 }}
+          </div>
+          <div class="top-body">
+            <span class="top-lot">{{ l.id_lot }}</span>
+            <span class="top-client">{{ l.client }}</span>
+          </div>
+          <div class="top-mdr" [ngClass]="getMdrClass(l.mdr)">{{ l.mdr }}%</div>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="lotsTopProblematic.length === 0 && !isLoading">
+        Aucune donnée
+      </div>
+    </div>
+
+    <!-- Liste lots avec filtres -->
+    <div class="chart-card main-card">
+      <div class="chart-header">
+        <h3>Liste des lots</h3>
+        <span class="count-badge">{{ lotsList.length }} lots</span>
+      </div>
+
+      <!-- Filtres inline -->
+      <div class="inline-filters">
+        <select [(ngModel)]="selectedClient" (change)="applyFilters()">
+          <option value="">Tous clients</option>
+          <option value="C001">BMW</option>
+          <option value="C002">Range Rover</option>
+        </select>
+        <select [(ngModel)]="selectedStatut" (change)="applyFilters()">
+          <option value="">Tous statuts</option>
+          <option value="termine">Terminé</option>
+          <option value="en_cours">En cours</option>
+          <option value="en_attente">En attente</option>
+          <option value="rejete">Rejeté</option>
+        </select>
+        <input type="date" [(ngModel)]="startDate" (change)="applyFilters()" placeholder="Du"/>
+        <input type="date" [(ngModel)]="endDate"   (change)="applyFilters()" placeholder="Au"/>
+        <button class="btn-reset-sm" (click)="resetFilters()">✕ Reset</button>
+      </div>
+
+      <table class="data-table" *ngIf="lotsList.length > 0">
+        <thead>
+          <tr>
+            <th>Lot ID</th>
+            <th>Client</th>
+            <th>Réception</th>
+            
+            <th>MDR</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let lot of lotsList">
+            <td class="lot-id">{{ lot.id_lot }}</td>
+            <td>
+              <span class="client-badge"
+                    [class.badge-bmw]="lot.client === 'BMW'"
+                    [class.badge-rr]="lot.client !== 'BMW'">
+                {{ lot.client }}
+              </span>
+            </td>
+            <td class="date-cell">{{ lot.date_reception | date:'dd/MM/yyyy' }}</td>
+            
+            <td>
+              <span class="mdr-badge" [ngClass]="getMdrClass(lot.mdr)">
+                {{ lot.mdr }}%
+              </span>
+            </td>
+            <td>
+              <span class="status-pill" [ngClass]="getStatusClass(lot.statut_lot)">
+                {{ lot.statut_lot }}
+              </span>
+            </td>
+            <td>
+              <button class="btn-detail" (click)="openDetail(lot.id_lot)">
+                Détail →
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" *ngIf="lotsList.length === 0 && !isLoading">
+        Aucun lot trouvé
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal détail lot -->
+  <div class="modal-overlay" *ngIf="selectedLot || isLoadingDetail"
+       (click)="closeDetail()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      <div class="modal-loading" *ngIf="isLoadingDetail">
+        <div class="spinner"></div>
+        <span>Chargement...</span>
+      </div>
+
+      <ng-container *ngIf="selectedLot && !isLoadingDetail">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">{{ selectedLot.id_lot }}</h2>
+            <p class="modal-sub">{{ selectedLot.client }} · {{ selectedLot.date_reception | date:'dd/MM/yyyy' }}</p>
+          </div>
+          <button class="modal-close" (click)="closeDetail()">✕</button>
+        </div>
+
+        <div class="modal-kpis">
+          <div class="mk-item">
+            <span class="mk-label">Total pièces</span>
+            <span class="mk-val">{{ selectedLot.total_pieces }}</span>
+          </div>
+          <div class="mk-item">
+            <span class="mk-label">OK</span>
+            <span class="mk-val ok">{{ selectedLot.ok }}</span>
+          </div>
+          <div class="mk-item">
+            <span class="mk-label">NIO</span>
+            <span class="mk-val nio">{{ selectedLot.nio }}</span>
+          </div>
+          <div class="mk-item">
+            <span class="mk-label">MDR</span>
+            <span class="mk-val" [ngClass]="getMdrClass(selectedLot.mdr)">
+              {{ selectedLot.mdr }}%
+            </span>
+          </div>
+          <div class="mk-item">
+            <span class="mk-label">Statut</span>
+            <span class="status-pill" [ngClass]="getStatusClass(selectedLot.statut_lot)">
+              {{ selectedLot.statut_lot }}
+            </span>
+          </div>
+        </div>
+
+        <div class="modal-defects" *ngIf="selectedLot.defects?.length > 0">
+          <h3>Défauts détectés</h3>
+          <table class="data-table">
+            <thead>
+              <tr><th>Type</th><th>Gravité</th><th>Total</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of selectedLot.defects">
+                <td><span class="defect-tag">{{ d.type_defaut }}</span></td>
+                <td>
+                  <span class="sev-tag"
+                        [class.sev-high]="d.gravite === 'elevee'"
+                        [class.sev-med]="d.gravite === 'moyenne'"
+                        [class.sev-low]="d.gravite === 'faible'">
+                    {{ d.gravite }}
+                  </span>
+                </td>
+                <td><strong>{{ d.total }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-empty" *ngIf="!selectedLot.defects?.length">
+          ✅ Aucun défaut enregistré pour ce lot
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+
+</div>

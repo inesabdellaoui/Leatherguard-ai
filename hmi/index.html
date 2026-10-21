@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>CasFrontend [2.0.0] — IA Intégration</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+    }
+    .topbar {
+      background: #1a7bc4;
+      color: white;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .container {
+      display: flex;
+      height: calc(100vh - 36px);
+    }
+    /* Rectangle D gauche */
+    .sidebar {
+      width: 130px;
+      background: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      border-right: 1px solid #ccc;
+      transition: background 0.3s;
+    }
+    .sidebar.success { background: #2ecc71; }
+    .sidebar.error   { background: #e74c3c; }
+    .sidebar .letter {
+      font-size: 72px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .sidebar.success .letter,
+    .sidebar.error .letter { color: white; }
+
+    /* Pavé numérique */
+    .keypad {
+      padding: 30px;
+    }
+    .keypad h2 {
+      font-size: 16px;
+      margin-bottom: 6px;
+      color: #333;
+    }
+    .keypad p {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    .input-display {
+      width: 200px;
+      height: 36px;
+      border: 1px solid #ccc;
+      background: white;
+      font-size: 16px;
+      padding: 6px 10px;
+      margin-bottom: 16px;
+      letter-spacing: 4px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 50px);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .grid button {
+      width: 50px;
+      height: 36px;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      background: white;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .grid button:hover { background: #e8f4fd; }
+    .btn-confirm {
+      width: 156px;
+      height: 36px;
+      background: #1a7bc4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      border-radius: 3px;
+    }
+    .message {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+    }
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #ddd;
+      font-size: 11px;
+      padding: 4px 10px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">CasFrontend [2.0.0] — IA Intégration</div>
+
+<div class="container">
+  <!-- Rectangle D gauche -->
+  <div class="sidebar" id="sidebar">
+    <div class="letter">D</div>
+  </div>
+
+  <!-- Pavé numérique -->
+  <div class="keypad">
+    <h2>Secure Access</h2>
+    <p>Enter your matricule and then confirm.</p>
+
+    <input class="input-display" id="display"
+           type="password" readonly placeholder="••••••">
+
+    <div class="grid">
+      <button onclick="press('ESC')">ESC</button>
+      <button onclick="press('7')">7</button>
+      <button onclick="press('8')">8</button>
+      <button onclick="press('9')">9</button>
+      <button onclick="press('⌫')">⌫</button>
+      <button onclick="press('4')">4</button>
+      <button onclick="press('5')">5</button>
+      <button onclick="press('6')">6</button>
+      <button onclick="press('↑')">↑</button>
+      <button onclick="press('1')">1</button>
+      <button onclick="press('2')">2</button>
+      <button onclick="press('3')">3</button>
+      <button onclick="press('↓')">↓</button>
+      <button onclick="press('0')">0</button>
+      <button onclick="press('.')">.</button>
+      <button onclick="press('←')">←</button>
+      <button onclick="press('−')">−</button>
+      <button onclick="press('→')">→</button>
+    </div>
+
+    <button class="btn-confirm" onclick="confirm()">✓ Confirm</button>
+
+    <div class="message" id="message"></div>
+  </div>
+</div>
+
+<div class="status-bar">System standby...</div>
+
+<script>
+  let matricule = '';
+  const API = 'http://localhost:3000/api/hmi';
+
+  function press(key) {
+    if (key === 'ESC') { matricule = ''; updateDisplay(); return; }
+    if (key === '⌫')  { matricule = matricule.slice(0,-1); updateDisplay(); return; }
+    if (['↑','↓','←','→','−'].includes(key)) return;
+    matricule += key;
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    document.getElementById('display').value = matricule;
+  }
+
+  async function confirm() {
+    if (!matricule) return;
+
+    try {
+      const res = await fetch(`${API}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matricule })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.id_operateur) {
+        // Succès → D devient vert
+        document.getElementById('sidebar').className = 'sidebar success';
+        showMessage(`Bonjour ${data.prenom} ${data.nom}
+                    \nClient : ${data.client}`, 'success');
+
+        // Sauvegarder session
+        localStorage.setItem('session', JSON.stringify(data));
+
+        // Rediriger vers page scan après 2 secondes
+        setTimeout(() => {
+          window.location.href = 'lot.html';
+        }, 2000);
+
+      } else {
+        // Échec → D devient rouge
+        document.getElementById('sidebar').className = 'sidebar error';
+        showMessage('Matricule incorrect — Accès refusé', 'error');
+
+        setTimeout(() => {
+          document.getElementById('sidebar').className = 'sidebar';
+          matricule = '';
+          updateDisplay();
+        }, 2000);
+      }
+
+    } catch (err) {
+      showMessage('Erreur connexion serveur', 'error');
+    }
+  }
+
+  function showMessage(text, type) {
+    const msg = document.getElementById('message');
+    msg.textContent = text;
+    msg.className = `message ${type}`;
+  }
+</script>
+
+</body>
+</html>

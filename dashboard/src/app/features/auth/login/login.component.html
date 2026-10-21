@@ -1,0 +1,79 @@
+<div class="login-page">
+  <div class="login-left">
+    <div class="brand-header">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <rect x="3" y="6" width="16" height="10" rx="2" stroke="white" stroke-width="1.5" fill="none"/>
+          <path d="M7 10L10 13L15 7" stroke="#5be4a4" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">CuirQuality</div>
+        <div class="brand-group">DRÄXLMAIER Group</div>
+      </div>
+    </div>
+    <div class="brand-body">
+      <h2>Contrôle qualité cuir intelligent</h2>
+      <p>Détection et analyse des défauts en temps réel. Traçabilité complète des lots BMW et Range Rover.</p>
+    </div>
+    <div class="brand-stats">
+      <div class="stat-box">
+        <div class="stat-num">99.2%</div>
+        <div class="stat-label">Précision IA</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">BMW · RR</div>
+        <div class="stat-label">Clients actifs</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-card">
+      <div class="greeting-box" *ngIf="greetingMessage">
+        <span>{{ greetingIcon }}</span>
+        <span>{{ greetingMessage }}</span>
+      </div>
+
+      <h1 class="card-title">Connexion</h1>
+      <p class="card-sub">Accédez à votre espace qualité</p>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          [(ngModel)]="email"
+          placeholder="prenom.nom@draexlmaier.tn"
+          [class.input-error]="errorMessage"
+          (keyup.enter)="login()"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <input
+          id="password"
+          type="password"
+          [(ngModel)]="password"
+          placeholder="••••••••"
+          [class.input-error]="errorMessage"
+          (keyup.enter)="login()"
+        />
+      </div>
+
+      <button class="login-btn" (click)="login()" [disabled]="isLoading">
+        <span *ngIf="!isLoading">Se connecter →</span>
+        <span *ngIf="isLoading" class="loading-dots">Connexion en cours</span>
+      </button>
+
+      <div class="error-box" *ngIf="errorMessage">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="7" stroke="#dc2626" stroke-width="1.2"/>
+          <path d="M8 5v4M8 11v.5" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        {{ errorMessage }}
+      </div>
+    </div>
+  </div>
+</div>

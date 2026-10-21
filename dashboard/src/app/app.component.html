@@ -1,0 +1,8 @@
+<ng-container *ngIf="showLayout">
+  <app-sidebar></app-sidebar>
+  <app-topbar></app-topbar>
+</ng-container>
+
+<main class="main-content" [class.with-layout]="showLayout">
+  <router-outlet></router-outlet>
+</main>

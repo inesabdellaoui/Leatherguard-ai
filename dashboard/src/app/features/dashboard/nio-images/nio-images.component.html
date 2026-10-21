@@ -1,0 +1,207 @@
+<div class="nio-page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Images NIO</h1>
+      <p class="page-sub">Visualisation des pièces non-conformes détectées par YOLOv8</p>
+    </div>
+    <div class="header-stats">
+      <div class="stat-chip red">
+        <span>{{ images.length }}</span> images NIO
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-bar">
+    <div class="filter-item">
+      <label>Client</label>
+      <select [(ngModel)]="selectedClient" (change)="loadImages()">
+        <option value="">Tous</option>
+        <option value="C001">BMW</option>
+        <option value="C002">Range Rover</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Type défaut</label>
+      <select [(ngModel)]="selectedDefect" (change)="loadImages()">
+        <option value="">Tous</option>
+        <option value="scratch">Scratch</option>
+        <option value="scar">Scar</option>
+        <option value="gratter">Gratter</option>
+        <option value="cicatrice">Cicatrice</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Lot</label>
+      <input type="text" [(ngModel)]="selectedLot"
+             placeholder="Ex: LOT-2025-..." (keyup.enter)="loadImages()"/>
+    </div>
+    <button class="btn-filter" (click)="loadImages()">Filtrer</button>
+  </div>
+
+  <!-- Loading skeleton -->
+  <div class="images-grid" *ngIf="isLoading">
+    <div class="img-card skeleton" *ngFor="let i of [1,2,3,4,5,6,7,8]"></div>
+  </div>
+
+  <!-- Galerie -->
+  <div class="images-grid" *ngIf="!isLoading && images.length > 0">
+    <div class="img-card" *ngFor="let img of images"
+         (click)="openImage(img)">
+      <div class="img-wrap">
+        <img [src]="getImageUrl(img.image_path)"
+             [alt]="img.reference_piece"
+             (error)="$any($event.target).src='assets/images/no-image.png'"/>
+        <div class="img-overlay">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+               stroke="white" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            <line x1="11" y1="8" x2="11" y2="14"/>
+            <line x1="8" y1="11" x2="14" y2="11"/>
+          </svg>
+        </div>
+        <span class="confidence-badge" *ngIf="img.confidence">
+          {{ (img.confidence * 100).toFixed(1) }}%
+        </span>
+      </div>
+      <div class="img-info">
+        <span class="img-ref">{{ img.reference_piece }}</span>
+        <span class="img-lot">{{ img.id_lot }}</span>
+        <div class="img-tags">
+          <span class="defaut-tag" *ngIf="img.defauts">{{ img.defauts }}</span>
+        </div>
+        <span class="img-date">{{ img.date_inspection | date:'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && images.length === 0">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+         stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21 15 16 10 5 21"/>
+    </svg>
+    <p>Aucune image NIO disponible</p>
+  </div>
+
+  <!-- Modal détail image -->
+  <div class="modal-overlay" *ngIf="selectedImage || isLoadingDetail"
+       (click)="closeDetail()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      <div class="modal-loading" *ngIf="isLoadingDetail">
+        <div class="spinner"></div><span>Chargement...</span>
+      </div>
+
+      <ng-container *ngIf="selectedImage && !isLoadingDetail">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">{{ selectedImage.reference_piece }}</h2>
+            <p class="modal-sub">
+              Inspection {{ selectedImage.id_inspection }} ·
+              {{ selectedImage.date_inspection | date:'dd/MM/yyyy HH:mm' }}
+            </p>
+          </div>
+          <button class="modal-close" (click)="closeDetail()">✕</button>
+        </div>
+
+        <!-- Image annotée -->
+        <div class="modal-image-wrap">
+          <img [src]="getImageUrl(selectedImage.image_path)"
+               [alt]="selectedImage.reference_piece"
+               (error)="$any($event.target).src='assets/images/no-image.png'"/>
+          <div class="model-info-overlay">
+            <span>YOLOv8 · {{ selectedImage.model_version || 'v8' }}</span>
+            <span *ngIf="selectedImage.confidence">
+              Confiance : {{ (selectedImage.confidence * 100).toFixed(1) }}%
+            </span>
+          </div>
+        </div>
+        <!-- Carte SHAP -->
+<div class="shap-wrap" *ngIf="selectedImage?.shap_image_path">
+  <h3 class="shap-title">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    Carte d'explication SHAP
+  </h3>
+  <img [src]="getImageUrl(selectedImage.shap_image_path)"
+       alt="Carte SHAP"
+       class="shap-img"
+       (error)="$any($event.target).style.display='none'"/>
+  <p class="shap-legend">
+    Rouge = zone décisive pour la détection du défaut
+  </p>
+</div>
+
+        <!-- Infos pièce -->
+        <div class="modal-info-grid">
+          <div class="info-block">
+            <span class="info-label">Pièce</span>
+            <span class="info-val">{{ selectedImage.reference_piece }}</span>
+          </div>
+          <div class="info-block">
+            <span class="info-label">Lot</span>
+            <span class="info-val mono">{{ selectedImage.id_lot }}</span>
+          </div>
+          <div class="info-block">
+            <span class="info-label">Client</span>
+            <span class="client-badge"
+                  [class.badge-bmw]="selectedImage.client === 'BMW'"
+                  [class.badge-rr]="selectedImage.client !== 'BMW'">
+              {{ selectedImage.client }}
+            </span>
+          </div>
+          <div class="info-block">
+            <span class="info-label">Résultat</span>
+            <span class="result-badge badge-nio">NIO</span>
+          </div>
+        </div>
+
+        <!-- Défauts -->
+        <div class="modal-defects" *ngIf="selectedImage.defauts?.length > 0">
+          <h3>Défauts détectés</h3>
+          <div class="defect-chips">
+            <div class="defect-chip" *ngFor="let d of selectedImage.defauts">
+              <span class="chip-type">{{ d.type_defaut }}</span>
+              <span class="chip-sev" [ngClass]="getSevClass(d.gravite)">
+                {{ d.gravite }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bbox info -->
+        <div class="bbox-info"
+             *ngIf="selectedImage.bbox_x !== null && selectedImage.bbox_x !== undefined">
+          <span class="bbox-label">BBox YOLOv8</span>
+          <span class="bbox-coords">
+            x:{{ selectedImage.bbox_x?.toFixed(2) }}
+            y:{{ selectedImage.bbox_y?.toFixed(2) }}
+            w:{{ selectedImage.bbox_w?.toFixed(2) }}
+            h:{{ selectedImage.bbox_h?.toFixed(2) }}
+          </span>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-rapport" (click)="goToRapport()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Générer le rapport
+          </button>
+          <button class="btn-close-modal" (click)="closeDetail()">Fermer</button>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+
+</div>

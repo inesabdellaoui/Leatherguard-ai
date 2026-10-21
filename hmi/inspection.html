@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>CasFrontend [2.0.0] — Inspection IA</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f0f0; }
+
+    .topbar {
+      background: #1a7bc4;
+      color: white;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .container {
+      display: flex;
+      height: calc(100vh - 36px - 24px);
+    }
+
+    .sidebar {
+      width: 130px;
+      background: #2ecc71;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      border-right: 1px solid #ccc;
+      transition: background 0.4s;
+    }
+
+    .sidebar.nio  { background: #e74c3c; }
+    .sidebar.wait { background: #f39c12; }
+
+    .sidebar .letter {
+      font-size: 72px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .sidebar .op-info {
+      margin-top: 16px;
+      text-align: center;
+      color: white;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .content {
+      flex: 1;
+      padding: 20px 30px;
+      display: flex;
+      gap: 20px;
+    }
+
+    .col-main {
+      flex: 1.2;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .breadcrumb {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .breadcrumb span { color: #1a7bc4; font-weight: bold; }
+
+    h2 { font-size: 15px; color: #333; }
+
+    /* Zone de saisie manuelle — style industriel */
+    .inspection-box {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      border: 2px solid #1a7bc4;
+    }
+
+    .inspection-box .icon-scan {
+      font-size: 56px;
+      color: #1a7bc4;
+    }
+
+    .inspection-box label {
+      font-size: 13px;
+      color: #555;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .inspection-box input {
+      width: 100%;
+      height: 52px;
+      font-size: 20px;
+      padding: 0 16px;
+      border: 2px solid #1a7bc4;
+      border-radius: 6px;
+      text-align: center;
+      letter-spacing: 3px;
+      color: #1a1a1a;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .inspection-box input:focus {
+      border-color: #0f4c85;
+      box-shadow: 0 0 0 3px rgba(26,123,196,0.15);
+    }
+
+    .btn-analyser {
+      width: 100%;
+      height: 52px;
+      background: #1a7bc4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 6px;
+      letter-spacing: 1px;
+      transition: background 0.2s;
+    }
+
+    .btn-analyser:hover    { background: #1565a8; }
+    .btn-analyser:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    /* Résultat en cours / feedback visuel */
+    .analyse-status {
+      width: 100%;
+      padding: 14px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+      background: #fff3cd;
+      color: #856404;
+      display: none;
+    }
+
+    /* Colonne droite — résultats */
+    .col-results {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .counter-box {
+      background: white;
+      border-radius: 8px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .counter-item .val {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .counter-item .lbl {
+      font-size: 10px;
+      color: #888;
+    }
+
+    .counter-item.total .val { color: #1a7bc4; }
+    .counter-item.io    .val { color: #27ae60; }
+    .counter-item.nio   .val { color: #e74c3c; }
+
+    .last-result {
+      background: white;
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .last-result h4 {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    .result-badge {
+      width: 100%;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .result-badge.io   { background: #d4edda; color: #155724; }
+    .result-badge.nio  { background: #f8d7da; color: #721c24; }
+    .result-badge.wait { background: #fff3cd; color: #856404; }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 4px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .detail-row .lbl { color: #888; }
+    .detail-row .val { font-weight: 600; }
+
+    .conf-bar {
+      background: #e0e0e0;
+      border-radius: 4px;
+      height: 6px;
+      margin-top: 6px;
+    }
+
+    .conf-fill {
+      height: 6px;
+      border-radius: 4px;
+      background: #27ae60;
+      transition: width 0.6s;
+    }
+
+    .history-box {
+      background: white;
+      border-radius: 8px;
+      padding: 14px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .history-box h4 {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 12px;
+    }
+
+    .history-item .piece-id { color: #333; font-weight: 600; }
+    .history-item .badge {
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .badge.io  { background: #d4edda; color: #155724; }
+    .badge.nio { background: #f8d7da; color: #721c24; }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .btn-fin-gp {
+      height: 40px;
+      background: #e67e22;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+
+    .btn-fin-lot {
+      height: 40px;
+      background: #8e44ad;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+
+    .btn-logout {
+      height: 40px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #ddd;
+      font-size: 11px;
+      padding: 4px 10px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">CasFrontend [2.0.0] — IA Intégration</div>
+
+<div class="container">
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="letter">D</div>
+    <div class="op-info" id="opInfo">...</div>
+  </div>
+
+  <div class="content">
+
+    <!-- Colonne gauche : saisie manuelle -->
+    <div class="col-main">
+
+      <div class="breadcrumb">
+        Lot : <span id="breadLot">—</span> ›
+        Grande pièce : <span id="breadGP">—</span> ›
+        Inspection
+      </div>
+
+      <h2>🔍 Inspection IA — Saisie identifiant pièce</h2>
+
+      <!-- Zone saisie manuelle -->
+      <div class="inspection-box">
+        <div class="icon-scan">🏷️</div>
+        <label>IDENTIFIANT DE LA PIÈCE COUPÉE</label>
+        <input
+          type="text"
+          id="pieceInput"
+          placeholder="Ex: PC-2026-001"
+          onkeydown="if(event.key==='Enter') analyser()"
+          autocomplete="off"
+          autofocus
+        />
+        <button class="btn-analyser" id="btnAnalyser" onclick="analyser()">
+          ▶ LANCER L'ANALYSE IA
+        </button>
+        <div class="analyse-status" id="analyseStatus">
+          ⏳ Pipeline IA en cours — N1 YOLOv8s → N2 PatchCore → N3 EfficientNet...
+        </div>
+      </div>
+
+      <!-- Info lot / GP -->
+      <div style="background:white; border-radius:8px; padding:14px;
+                  font-size:12px; color:#555; display:flex; gap:24px;">
+        <div>
+          <span style="color:#888;">Lot en cours</span><br>
+          <strong id="infoLot" style="color:#1a7bc4;">—</strong>
+        </div>
+        <div>
+          <span style="color:#888;">Grande pièce</span><br>
+          <strong id="infoGP" style="color:#1a7bc4;">—</strong>
+        </div>
+        <div>
+          <span style="color:#888;">Opérateur</span><br>
+          <strong id="infoOp" style="color:#1a7bc4;">—</strong>
+        </div>
+        <div>
+          <span style="color:#888;">Client</span><br>
+          <strong id="infoClient" style="color:#1a7bc4;">—</strong>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Colonne droite : résultats -->
+    <div class="col-results">
+
+      <!-- Compteurs session -->
+      <div class="counter-box">
+        <div class="counter-item total">
+          <div class="val" id="cntTotal">0</div>
+          <div class="lbl">Total</div>
+        </div>
+        <div class="counter-item io">
+          <div class="val" id="cntIO">0</div>
+          <div class="lbl">IO ✅</div>
+        </div>
+        <div class="counter-item nio">
+          <div class="val" id="cntNIO">0</div>
+          <div class="lbl">NIO ❌</div>
+        </div>
+      </div>
+
+      <!-- Dernier résultat -->
+      <div class="last-result">
+        <h4>Dernier résultat</h4>
+        <div class="result-badge wait" id="lastBadge">
+          En attente...
+        </div>
+        <div class="detail-row">
+          <span class="lbl">Pièce</span>
+          <span class="val" id="lastPiece">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">Résultat</span>
+          <span class="val" id="lastResultat">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">Confiance IA</span>
+          <span class="val" id="lastConf">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">Défaut</span>
+          <span class="val" id="lastDefaut">—</span>
+        </div>
+        <div class="detail-row">
+          <span class="lbl">Gravité</span>
+          <span class="val" id="lastGravite">—</span>
+        </div>
+        <div class="conf-bar">
+          <div class="conf-fill" id="confFill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Historique -->
+      <div class="history-box">
+        <h4>Historique — Grande pièce courante</h4>
+        <div id="historyList">
+          <div style="font-size:12px; color:#aaa; text-align:center;
+                      padding:20px 0;">
+            Aucune inspection pour le moment
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="action-buttons">
+        <button class="btn-fin-gp" onclick="finGrandePiece()">
+          ✅ Terminer cette grande pièce
+        </button>
+        <button class="btn-fin-lot" onclick="finLot()">
+          📦 Terminer le lot
+        </button>
+        <button class="btn-logout" onclick="logout()">
+          ⏻ Fin de poste
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  Prêt — Saisir l'identifiant de la pièce à inspecter
+</div>
+
+<script>
+  const API     = 'http://localhost:3000/api/hmi';
+  const session = JSON.parse(localStorage.getItem('session')    || '{}');
+  const lot     = JSON.parse(localStorage.getItem('currentLot') || '{}');
+  const gp      = JSON.parse(localStorage.getItem('currentGP')  || '{}');
+
+  let cntIO  = 0;
+  let cntNIO = 0;
+  let history = [];
+
+  // Vérifications session
+  if (!session.id_operateur) { window.location.href = 'index.html';       }
+  if (!lot.id_lot)           { window.location.href = 'lot.html';          }
+  if (!gp.id_grande_piece)   { window.location.href = 'grande-piece.html'; }
+
+  // Afficher infos
+  document.getElementById('opInfo').innerHTML =
+    `<strong>${session.prenom || ''}</strong><br>${session.client || ''}`;
+  document.getElementById('breadLot').textContent    = lot.id_lot;
+  document.getElementById('breadGP').textContent     = gp.id_grande_piece;
+  document.getElementById('infoLot').textContent     = lot.id_lot;
+  document.getElementById('infoGP').textContent      = gp.id_grande_piece;
+  document.getElementById('infoOp').textContent      = session.prenom || '—';
+  document.getElementById('infoClient').textContent  = session.client || '—';
+
+  // ── Lancer analyse ───────────────────────────────────────────
+  async function analyser() {
+    const input    = document.getElementById('pieceInput');
+    const id_piece = input.value.trim();
+    if (!id_piece) {
+      input.focus();
+      return;
+    }
+
+    const btn    = document.getElementById('btnAnalyser');
+    const status = document.getElementById('analyseStatus');
+
+    btn.disabled    = true;
+    btn.textContent = '⏳ Analyse en cours...';
+    status.style.display = 'block';
+
+    setSidebarState('wait');
+    document.getElementById('lastBadge').className   = 'result-badge wait';
+    document.getElementById('lastBadge').textContent = '⏳ Analyse en cours...';
+    document.getElementById('statusBar').textContent =
+      `🔍 Pipeline IA — Pièce ${id_piece}...`;
+
+    try {
+      const res = await fetch(`${API}/inspection-auto`, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({
+          id_piece,
+          id_grande_piece : gp.id_grande_piece,
+          id_lot          : lot.id_lot,
+          id_operateur    : session.id_operateur,
+          id_session      : session.id_session,
+          image_base64    : ''
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        afficherResultat(data);
+        input.value = '';
+        input.focus();
+      } else {
+        document.getElementById('statusBar').textContent =
+          '❌ Erreur lors de l\'inspection';
+      }
+
+    } catch (err) {
+      document.getElementById('statusBar').textContent =
+        '❌ Erreur connexion serveur — Vérifiez que NestJS est démarré';
+    } finally {
+      btn.disabled         = false;
+      btn.textContent      = '▶ LANCER L\'ANALYSE IA';
+      status.style.display = 'none';
+    }
+  }
+
+  // ── Afficher résultat ────────────────────────────────────────
+  function afficherResultat(data) {
+    // Cas INCONNU
+    if (data.resultat === 'INCONNU') {
+  setSidebarState('wait');  // orange
+  document.getElementById('lastBadge').className   = 'result-badge wait';
+  document.getElementById('lastBadge').textContent = '⚠️ Pièce introuvable';
+  document.getElementById('statusBar').textContent = data.message;
+  document.getElementById('btnAnalyser').disabled    = false;
+  document.getElementById('btnAnalyser').textContent = '▶ LANCER L\'ANALYSE IA';
+  return;
+}
+// Pièce déjà inspectée
+if (data.resultat === 'DOUBLON') {
+  setSidebarState('wait');
+  document.getElementById('lastBadge').className   = 'result-badge wait';
+  document.getElementById('lastBadge').textContent = '⚠️ Déjà inspectée';
+  document.getElementById('statusBar').textContent = data.message;
+
+  // Afficher popup confirmation
+  const retest = confirm(
+    `⚠️ Cette pièce a déjà été inspectée !\n` +
+    `Résultat précédent : ${data.resultat_precedent}\n` +
+    `Date : ${new Date(data.date_precedente).toLocaleString('fr-FR')}\n\n` +
+    `Voulez-vous quand même la réinspecter ?`
+  );
+  if (!retest) {
+    document.getElementById('btnAnalyser').disabled    = false;
+    document.getElementById('btnAnalyser').textContent = '▶ LANCER L\'ANALYSE IA';
+    return;
+  }
+  // Si oui → forcer nouvelle inspection (supprimer le check doublon côté NestJS)
+  return;
+}
+
+// Grande pièce complète
+if (data.resultat === 'CAPACITE_DEPASSEE') {
+  setSidebarState('wait');
+  document.getElementById('lastBadge').className   = 'result-badge wait';
+  document.getElementById('lastBadge').textContent = '⚠️ Grande pièce complète';
+  document.getElementById('statusBar').textContent = data.message;
+  document.getElementById('btnAnalyser').disabled    = false;
+  document.getElementById('btnAnalyser').textContent = '▶ LANCER L\'ANALYSE IA';
+  return;
+}
+
+// Lot complet
+if (data.resultat === 'LOT_COMPLET') {
+  setSidebarState('wait');
+  document.getElementById('lastBadge').className   = 'result-badge wait';
+  document.getElementById('lastBadge').textContent = '⚠️ Lot complet';
+  document.getElementById('statusBar').textContent = data.message;
+  document.getElementById('btnAnalyser').disabled    = false;
+  document.getElementById('btnAnalyser').textContent = '▶ LANCER L\'ANALYSE IA';
+  return;
+}
+
+// Pièce introuvable
+if (data.resultat === 'INTROUVABLE') {
+  setSidebarState('wait');
+  document.getElementById('lastBadge').className   = 'result-badge wait';
+  document.getElementById('lastBadge').textContent = '⚠️ Pièce introuvable';
+  document.getElementById('statusBar').textContent = data.message;
+  document.getElementById('btnAnalyser').disabled    = false;
+  document.getElementById('btnAnalyser').textContent = '▶ LANCER L\'ANALYSE IA';
+  return;
+}
+
+    const isIO    = data.resultat === 'IO';
+    const confPct = Math.round((data.confidence || 0) * 100);
+
+    setSidebarState(isIO ? '' : 'nio');
+
+    const badge = document.getElementById('lastBadge');
+    badge.className  = `result-badge ${isIO ? 'io' : 'nio'}`;
+    badge.textContent = isIO
+      ? '✅ IO — CONFORME'
+      : '❌ NIO — DÉFAUT DÉTECTÉ';
+
+    document.getElementById('lastPiece').textContent   = data.id_piece;
+    document.getElementById('lastResultat').textContent = data.resultat;
+    document.getElementById('lastConf').textContent    = confPct + '%';
+    document.getElementById('lastDefaut').textContent  = data.type_defaut || '—';
+    document.getElementById('lastGravite').textContent = data.gravite     || '—';
+
+    setTimeout(() => {
+      document.getElementById('confFill').style.width      = confPct + '%';
+      document.getElementById('confFill').style.background =
+        isIO ? '#27ae60' : '#e74c3c';
+    }, 100);
+
+    if (isIO) { cntIO++;  }
+    else       { cntNIO++; }
+
+    document.getElementById('cntTotal').textContent = cntIO + cntNIO;
+    document.getElementById('cntIO').textContent    = cntIO;
+    document.getElementById('cntNIO').textContent   = cntNIO;
+
+    ajouterHistorique(data);
+
+    document.getElementById('statusBar').textContent = isIO
+      ? `✅ Pièce ${data.id_piece} — IO — Confiance ${confPct}%`
+      : `❌ Pièce ${data.id_piece} — NIO — ${data.type_defaut || ''} — Confiance ${confPct}%`;
+  }
+
+  function ajouterHistorique(data) {
+    history.unshift(data);
+    const list = document.getElementById('historyList');
+    list.innerHTML = history.slice(0, 10).map(item => `
+      <div class="history-item">
+        <span class="piece-id">${item.id_piece}</span>
+        <span class="badge ${item.resultat === 'IO' ? 'io' : 'nio'}">
+          ${item.resultat === 'IO' ? 'IO' : 'NIO'}
+        </span>
+      </div>
+    `).join('');
+  }
+
+  function setSidebarState(state) {
+    const sb = document.getElementById('sidebar');
+    sb.className = `sidebar ${state}`;
+  }
+
+  async function finGrandePiece() {
+    try {
+      await fetch(`${API}/fin-grande-piece`, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ id_grande_piece: gp.id_grande_piece })
+      });
+      alert(
+        `Grande pièce terminée ✅\n` +
+        `Total : ${cntIO + cntNIO} pièces\n` +
+        `IO    : ${cntIO}\n` +
+        `NIO   : ${cntNIO}`
+      );
+      localStorage.removeItem('currentGP');
+      window.location.href = 'grande-piece.html';
+    } catch (err) {
+      alert('Erreur lors de la finalisation');
+    }
+  }
+
+  async function finLot() {
+    try {
+      const res  = await fetch(`${API}/lot-summary/${lot.id_lot}`);
+      const data = await res.json();
+      alert(
+        `Lot ${lot.id_lot} terminé 📦\n` +
+        `Total pièces : ${data.total_pieces}\n` +
+        `IO           : ${data.io}\n` +
+        `NIO          : ${data.nio}\n` +
+        `MDR          : ${data.mdr}%`
+      );
+      localStorage.removeItem('currentLot');
+      localStorage.removeItem('currentGP');
+      window.location.href = 'lot.html';
+    } catch (err) {
+      alert('Erreur lors de la finalisation du lot');
+    }
+  }
+
+  async function logout() {
+    if (!confirm('Terminer le poste et se déconnecter ?')) return;
+    try {
+      await fetch(`${API}/logout`, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ id_session: session.id_session })
+      });
+    } catch (err) {}
+    localStorage.clear();
+    window.location.href = 'index.html';
+  }
+</script>
+
+</body>
+</html>

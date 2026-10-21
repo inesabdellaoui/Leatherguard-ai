@@ -1,0 +1,214 @@
+<div class="perf-page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Performances d'inspection</h1>
+      <p class="page-sub">Cadence, conformité et évolution dans le temps</p>
+    </div>
+    <button class="btn-refresh" (click)="loadAll()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Actualiser
+    </button>
+  </div>
+
+  <div class="error-banner" *ngIf="hasError">
+    ⚠️ Impossible de joindre le backend. Vérifiez localhost:3000.
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" *ngIf="!isLoading">
+    <div class="kpi-card accent-blue">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Total inspections</span>
+        <span class="kpi-value">{{ totalInspections | number }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card accent-teal">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Cadence / heure</span>
+        <span class="kpi-value">{{ cadenceParHeure }}</span>
+        <span class="kpi-unit">pièces/h</span>
+      </div>
+    </div>
+
+    <div class="kpi-card accent-green">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Taux de conformité</span>
+        <span class="kpi-value">{{ tauxConformite }}%</span>
+      </div>
+      <div class="kpi-bar-wrap">
+        <div class="kpi-bar-fill green"
+             [style.width.%]="tauxConformite">
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-card accent-amber">
+      <div class="kpi-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <line x1="12" y1="2" x2="12" y2="6"/>
+          <line x1="12" y1="18" x2="12" y2="22"/>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+          <line x1="2" y1="12" x2="6" y2="12"/>
+          <line x1="18" y1="12" x2="22" y2="12"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Délai moyen</span>
+        <span class="kpi-value">{{ delaiMoyenHeures }}h</span>
+        <span class="kpi-unit">réception → inspection</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpi-grid" *ngIf="isLoading">
+    <div class="kpi-card skeleton" *ngFor="let i of [1,2,3,4]"></div>
+  </div>
+
+  <!-- Trend + Par client -->
+  <div class="charts-row">
+
+    <div class="chart-card chart-lg">
+      <div class="chart-header">
+        <h3>Évolution des inspections (14 derniers jours)</h3>
+        <div class="legend-row">
+          <span class="leg leg-ok">IO</span>
+          <span class="leg leg-nio">NIO</span>
+        </div>
+      </div>
+      <div class="bar-chart" *ngIf="perfTrend.length > 0">
+        <div class="bar-group" *ngFor="let d of perfTrend">
+          <div class="bars">
+            <div class="bar bar-ok"
+                 [style.height.%]="getBarH(d.ok, perfTrend, 'ok')"
+                 [title]="'OK: ' + d.ok">
+            </div>
+            <div class="bar bar-nio"
+                 [style.height.%]="getBarH(d.nio, perfTrend, 'nio')"
+                 [title]="'NIO: ' + d.nio">
+            </div>
+          </div>
+          <span class="bar-lbl">{{ d.date }}</span>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="perfTrend.length === 0 && !isLoading">
+        Aucune donnée disponible
+      </div>
+    </div>
+
+    <div class="chart-card chart-sm">
+      <div class="chart-header">
+        <h3>Par client</h3>
+      </div>
+      <div class="client-list" *ngIf="perfByClient.length > 0">
+        <div class="client-row" *ngFor="let c of perfByClient">
+          <div class="client-top">
+            <span class="client-badge"
+                  [class.badge-bmw]="c.client === 'BMW'"
+                  [class.badge-rr]="c.client !== 'BMW'">
+              {{ c.client }}
+            </span>
+            <span class="client-mdr"
+                  [class.mdr-high]="c.mdr > 15"
+                  [class.mdr-med]="c.mdr > 10 && c.mdr <= 15"
+                  [class.mdr-ok]="c.mdr <= 10">
+              MDR {{ c.mdr }}%
+            </span>
+          </div>
+          <div class="client-stats">
+            <span class="stat-ok">✓ {{ c.ok | number }}</span>
+            <span class="stat-nio">✗ {{ c.nio | number }}</span>
+          </div>
+          <div class="client-bar-bg">
+            <div class="client-bar-ok"
+                 [style.width.%]="getBarH(c.ok, perfByClient, 'total')">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="perfByClient.length === 0 && !isLoading">
+        Aucune donnée
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Classement opératrices -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <h3>Classement par opératrice</h3>
+    </div>
+    <table class="data-table" *ngIf="perfByOperatrice.length > 0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Opératrice</th>
+          <th>Rôle</th>
+          <th>Inspections</th>
+          <th>IO</th>
+          <th>NIO</th>
+          <th>Taux OK</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let op of perfByOperatrice; let i = index">
+          <td class="rank-cell">
+            <span class="medal" *ngIf="i === 0">🥇</span>
+            <span class="medal" *ngIf="i === 1">🥈</span>
+            <span class="medal" *ngIf="i === 2">🥉</span>
+            <span *ngIf="i > 2">{{ i + 1 }}</span>
+          </td>
+          <td class="name-cell">{{ op.operatrice }}</td>
+          <td><span class="role-tag">{{ op.role }}</span></td>
+          <td><strong>{{ op.total | number }}</strong></td>
+          <td class="ok-cell">{{ op.ok | number }}</td>
+          <td class="nio-cell">{{ op.nio | number }}</td>
+          <td>
+            <div class="rate-cell">
+              <div class="rate-bar-bg">
+                <div class="rate-bar-fill"
+                     [style.width.%]="op.taux_ok"
+                     [class.rate-high]="op.taux_ok >= 90"
+                     [class.rate-med]="op.taux_ok >= 80 && op.taux_ok < 90"
+                     [class.rate-low]="op.taux_ok < 80">
+                </div>
+              </div>
+              <span class="rate-val">{{ op.taux_ok }}%</span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty-state" *ngIf="perfByOperatrice.length === 0 && !isLoading">
+      Aucune donnée disponible
+    </div>
+  </div>
+
+</div>

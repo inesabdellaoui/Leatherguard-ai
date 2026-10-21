@@ -1,0 +1,16 @@
+.main-content {
+  min-height: 100vh;
+}
+
+/* Quand le layout est présent, décaler le contenu */
+.main-content.with-layout {
+  margin-left: 240px;
+  padding-top: 60px;
+  transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f8f7f4;
+}
+
+/* Quand sidebar est collapsed */
+.main-content.with-layout.sidebar-collapsed {
+  margin-left: 68px;
+}

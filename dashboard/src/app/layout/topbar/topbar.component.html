@@ -1,0 +1,66 @@
+<header class="topbar">
+
+  <div class="topbar-left">
+    <button class="menu-toggle" (click)="toggleMobileMenu()" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="6"  x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <span class="page-title">{{ pageTitle }}</span>
+  </div>
+
+  <div class="topbar-right">
+
+    <div class="datetime">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span>{{ currentDateTime | date:'dd/MM/yyyy · HH:mm' }}</span>
+    </div>
+
+    <!-- Notifications -->
+    
+
+    <!-- User menu -->
+    <div class="user-menu-wrapper">
+      <button class="user-pill" (click)="toggleUserMenu()">
+        <div class="user-av">{{ userInitials }}</div>
+        <span class="user-first">{{ currentUser?.prenom || 'Utilisateur' }}</span>
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path [attr.d]="showUserMenu ? 'M2 8L6 4L10 8' : 'M2 4L6 8L10 4'"/>
+        </svg>
+      </button>
+
+      <div class="dropdown user-dropdown" *ngIf="showUserMenu">
+        <div class="user-drop-header">
+          <div class="user-av-lg">{{ userInitials }}</div>
+          <div>
+            <div class="user-fullname">
+              {{ currentUser?.prenom }} {{ currentUser?.nom }}
+            </div>
+            <div class="user-email">{{ currentUser?.email || '—' }}</div>
+            <span class="role-pill">{{ userRoleLabel }}</span>
+          </div>
+        </div>
+        <div class="drop-divider"></div>
+        <button class="drop-logout" (click)="logout()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Déconnexion
+        </button>
+      </div>
+    </div>
+
+  </div>
+</header>

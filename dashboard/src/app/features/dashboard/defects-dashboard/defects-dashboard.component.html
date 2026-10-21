@@ -1,0 +1,191 @@
+<div class="defects-page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Analyse des défauts</h1>
+      <p class="page-sub">Suivi et distribution des défauts cuir détectés</p>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-bar">
+    <div class="filter-item">
+      <label>Client</label>
+      <select [(ngModel)]="selectedClient">
+        <option value="">Tous</option>
+        <option value="C001">BMW</option>
+        <option value="C002">Range Rover</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Type défaut</label>
+      <select [(ngModel)]="selectedDefect">
+        <option value="">Tous</option>
+        <option value="scratch">Scratch</option>
+        <option value="scar">Scar</option>
+        <option value="gratter">Gratter</option>
+        <option value="cicatrice">Cicatrice</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Gravité</label>
+      <select [(ngModel)]="selectedSeverity">
+        <option value="">Toutes</option>
+        <option value="faible">Faible</option>
+        <option value="moyenne">Moyenne</option>
+        <option value="elevee">Élevée</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Du</label>
+      <input type="date" [(ngModel)]="startDate"/>
+    </div>
+    <div class="filter-item">
+      <label>Au</label>
+      <input type="date" [(ngModel)]="endDate"/>
+    </div>
+    <button class="btn-filter" (click)="applyFilters()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      Filtrer
+    </button>
+    <button class="btn-reset" (click)="resetFilters()">Réinitialiser</button>
+  </div>
+
+  <div class="error-banner" *ngIf="hasError">
+    ⚠️ Erreur de connexion. Vérifiez que le backend est démarré sur localhost:3000.
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" *ngIf="!isLoading">
+    <div class="kpi-card kpi-red-accent">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Total défauts</span>
+        <span class="kpi-value">{{ totalDefects | number }}</span>
+      </div>
+    </div>
+    <div class="kpi-card kpi-amber-accent">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Défaut dominant</span>
+        <span class="kpi-value kpi-text">{{ dominantDefect }}</span>
+      </div>
+    </div>
+    <div class="kpi-card kpi-purple-accent">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Gravité dominante</span>
+        <span class="kpi-value kpi-text">{{ dominantSeverity }}</span>
+      </div>
+    </div>
+    <div class="kpi-card kpi-blue-accent">
+      <div class="kpi-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Lots impactés</span>
+        <span class="kpi-value">{{ impactedLots }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpi-grid" *ngIf="isLoading">
+    <div class="kpi-card skeleton" *ngFor="let i of [1,2,3,4]"></div>
+  </div>
+
+  <!-- Répartition + Gravité -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-header"><h3>Répartition des défauts</h3></div>
+      <div class="dist-list" *ngIf="defectsDistribution.length > 0">
+        <div class="dist-row" *ngFor="let d of defectsDistribution; let i = index">
+          <span class="dist-rank">{{ i + 1 }}</span>
+          <span class="dist-type">{{ d.type }}</span>
+          <div class="dist-bar-bg">
+            <div class="dist-bar-fill"
+                 [style.width.%]="getBarHeight(d.total, defectsDistribution, 'total')">
+            </div>
+          </div>
+          <strong class="dist-count">{{ d.total }}</strong>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="defectsDistribution.length === 0 && !isLoading">
+        Aucune donnée
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header"><h3>Par gravité</h3></div>
+      <div class="sev-list" *ngIf="defectsBySeverity.length > 0">
+        <div class="sev-row" *ngFor="let s of defectsBySeverity">
+          <div class="sev-header-row">
+            <span class="sev-label">{{ s.gravite }}</span>
+            <strong>{{ s.total }}</strong>
+          </div>
+          <div class="sev-bar-bg">
+            <div class="sev-bar-fill"
+                 [style.width.%]="getBarHeight(s.total, defectsBySeverity, 'total')"
+                 [style.background]="getSeverityColor(s.gravite)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="defectsBySeverity.length === 0 && !isLoading">
+        Aucune donnée
+      </div>
+    </div>
+  </div>
+
+  <!-- Trend -->
+  <div class="chart-card">
+    <div class="chart-header"><h3>Évolution des défauts</h3></div>
+    <div class="trend-chart" *ngIf="defectsTrend.length > 0">
+      <div class="trend-group" *ngFor="let t of defectsTrend">
+        <div class="trend-bar-wrap">
+          <div class="trend-bar"
+               [style.height.%]="getBarHeight(t.total, defectsTrend, 'total')">
+          </div>
+        </div>
+        <span class="trend-label">{{ t.date }}</span>
+      </div>
+    </div>
+    <div class="empty-state" *ngIf="defectsTrend.length === 0 && !isLoading">
+      Aucune donnée disponible
+    </div>
+  </div>
+
+  <!-- Table top lots -->
+  <div class="chart-card">
+    <div class="chart-header"><h3>Top défauts par lot</h3></div>
+    <table class="data-table" *ngIf="topDefectsLots.length > 0">
+      <thead>
+        <tr>
+          <th>#</th><th>Lot</th><th>Client</th>
+          <th>Type défaut</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of topDefectsLots; let i = index">
+          <td class="rank-cell">{{ i + 1 }}</td>
+          <td class="lot-cell">{{ row.lot }}</td>
+          <td>
+            <span class="client-badge"
+                  [class.badge-bmw]="row.client === 'BMW'"
+                  [class.badge-rr]="row.client !== 'BMW'">
+              {{ row.client }}
+            </span>
+          </td>
+          <td>
+            <span class="defect-tag">{{ row.type_defaut }}</span>
+          </td>
+          <td><strong>{{ row.total }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty-state" *ngIf="topDefectsLots.length === 0 && !isLoading">
+      Aucune donnée disponible
+    </div>
+  </div>
+
+</div>

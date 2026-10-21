@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>CasFrontend [2.0.0] — Résultat Inspection</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f0f0; }
+
+    .topbar {
+      background: #1a7bc4;
+      color: white;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .container {
+      display: flex;
+      height: calc(100vh - 36px);
+    }
+
+    .sidebar {
+      width: 130px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      border-right: 1px solid #ccc;
+      transition: background 0.5s;
+    }
+
+    .sidebar .letter {
+      font-size: 72px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .content {
+      flex: 1;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Carte résultat IO */
+    .result-card {
+      width: 500px;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .result-card.io {
+      background: #d4edda;
+      border: 3px solid #27ae60;
+    }
+
+    .result-card.nio {
+      background: #f8d7da;
+      border: 3px solid #e74c3c;
+    }
+
+    .result-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+
+    .result-title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .result-card.io  .result-title { color: #155724; }
+    .result-card.nio .result-title { color: #721c24; }
+
+    .result-subtitle {
+      font-size: 16px;
+      margin-bottom: 24px;
+      color: #555;
+    }
+
+    .result-details {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+
+    .result-details table {
+      width: 100%;
+      font-size: 13px;
+    }
+
+    .result-details td {
+      padding: 6px 8px;
+    }
+
+    .result-details td:first-child {
+      color: #888;
+      width: 150px;
+    }
+
+    .confidence-bar {
+      background: #e0e0e0;
+      border-radius: 4px;
+      height: 8px;
+      margin-top: 8px;
+    }
+
+    .confidence-fill {
+      height: 8px;
+      border-radius: 4px;
+      background: #27ae60;
+      transition: width 1s;
+    }
+
+    .btn-next {
+      width: 240px;
+      height: 44px;
+      background: #1a7bc4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    .btn-logout {
+      width: 240px;
+      height: 44px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #ddd;
+      font-size: 11px;
+      padding: 4px 10px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">CasFrontend [2.0.0] — IA Intégration</div>
+
+<div class="container">
+  <div class="sidebar" id="sidebar">
+    <div class="letter">D</div>
+  </div>
+
+  <div class="content">
+    <div class="result-card" id="resultCard">
+
+      <div class="result-icon" id="resultIcon">⏳</div>
+      <div class="result-title" id="resultTitle">Analyse...</div>
+      <div class="result-subtitle" id="resultSubtitle">
+        Traitement en cours
+      </div>
+
+      <div class="result-details">
+        <table>
+          <tr>
+            <td>Pièce</td>
+            <td id="detPiece">—</td>
+          </tr>
+          <tr>
+            <td>Référence</td>
+            <td id="detRef">—</td>
+          </tr>
+          <tr>
+            <td>Lot</td>
+            <td id="detLot">—</td>
+          </tr>
+          <tr>
+            <td>Résultat IA</td>
+            <td id="detResultat">—</td>
+          </tr>
+          <tr>
+            <td>Confiance IA</td>
+            <td>
+              <span id="detConfiance">—</span>
+              <div class="confidence-bar">
+                <div class="confidence-fill"
+                     id="confidenceFill"
+                     style="width: 0%"></div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Modèle</td>
+            <td>YOLOv8s — v1</td>
+          </tr>
+        </table>
+      </div>
+
+      <button class="btn-next" onclick="nouvelleInspection()">
+        🔄 Nouvelle inspection
+      </button>
+      <br>
+      <button class="btn-logout" onclick="logout()">
+        ⏻ Fin de poste — Déconnexion
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">Affichage du résultat...</div>
+
+<script>
+  const API     = 'http://localhost:3000/api/hmi';
+  const session = JSON.parse(localStorage.getItem('session')  || '{}');
+  const resultat= JSON.parse(localStorage.getItem('resultat') || '{}');
+
+  // Vérifier session
+  if (!session.id_operateur) {
+    window.location.href = 'index.html';
+  }
+
+  // Afficher résultat
+  window.onload = function() {
+    const card     = document.getElementById('resultCard');
+    const sidebar  = document.getElementById('sidebar');
+    const isIO     = resultat.resultat === 'OK';
+    const confiance= Math.round((resultat.confidence || 0) * 100);
+
+    // Style selon résultat
+    if (isIO) {
+      card.className    = 'result-card io';
+      sidebar.style.background = '#2ecc71';
+      document.getElementById('resultIcon').textContent    = '✅';
+      document.getElementById('resultTitle').textContent   = 'PIÈCE CONFORME — IO';
+      document.getElementById('resultSubtitle').textContent= 'Prête pour l\'assemblage';
+      document.getElementById('statusBar').textContent     = '✅ Pièce IO — Prête pour assemblage';
+    } else {
+      card.className    = 'result-card nio';
+      sidebar.style.background = '#e74c3c';
+      document.getElementById('resultIcon').textContent    = '❌';
+      document.getElementById('resultTitle').textContent   = 'DÉFAUT DÉTECTÉ — NIO';
+      document.getElementById('resultSubtitle').textContent= 'Mettre la pièce de côté';
+      document.getElementById('statusBar').textContent     = '❌ Pièce NIO — Défaut détecté';
+    }
+
+    // Détails
+    document.getElementById('detPiece').textContent    = resultat.id_piece    || '—';
+    document.getElementById('detRef').textContent      = resultat.reference_piece || '—';
+    document.getElementById('detLot').textContent      = resultat.id_lot      || '—';
+    document.getElementById('detResultat').textContent = resultat.resultat    || '—';
+    document.getElementById('detConfiance').textContent= confiance + '%';
+
+    // Barre confiance
+    setTimeout(() => {
+      document.getElementById('confidenceFill').style.width = confiance + '%';
+    }, 300);
+  };
+
+  function nouvelleInspection() {
+    localStorage.removeItem('resultat');
+    window.location.href = 'scan.html';
+  }
+
+  async function logout() {
+    try {
+      await fetch(`${API}/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_session: session.id_session })
+      });
+    } catch (err) {
+      console.error(err);
+    }
+
+    localStorage.removeItem('session');
+    localStorage.removeItem('resultat');
+    window.location.href = 'index.html';
+  }
+</script>
+
+</body>
+</html>

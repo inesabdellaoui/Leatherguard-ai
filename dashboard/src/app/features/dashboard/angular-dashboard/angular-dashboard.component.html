@@ -1,0 +1,250 @@
+<div class="dash-page">
+
+  <!-- Header -->
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <h1 class="dash-title">Vue d'ensemble</h1>
+      <span class="dash-sub">Qualité cuir · {{ currentTime }}</span>
+    </div>
+    
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-bar">
+    <div class="filter-item">
+      <label>Client</label>
+      <select [(ngModel)]="selectedClient">
+        <option value="">Tous</option>
+        <option value="C001">BMW</option>
+        <option value="C002">Range Rover</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Défaut</label>
+      <select [(ngModel)]="selectedDefect">
+        <option value="">Tous</option>
+        <option value="gratter">Gratter</option>
+        <option value="cicatrice">Cicatrice</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Du</label>
+      <input type="date" [(ngModel)]="startDate"/>
+    </div>
+    <div class="filter-item">
+      <label>Au</label>
+      <input type="date" [(ngModel)]="endDate"/>
+    </div>
+    <button class="btn-filter" (click)="applyFilters()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      Filtrer
+    </button>
+    <button class="btn-reset" (click)="resetFilters()">Réinitialiser</button>
+  </div>
+
+  <!-- État chargement / erreur -->
+  <div class="state-banner error-banner" *ngIf="hasError">
+    ⚠️ Erreur de connexion au serveur. Vérifiez que le backend est démarré.
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" *ngIf="!isLoading">
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-blue">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Inspections totales</span>
+        <span class="kpi-value">{{ totalInspections | number }}</span>
+      </div>
+      
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Pièces OK</span>
+        <span class="kpi-value">{{ piecesOK | number }}</span>
+      </div>
+      
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-red">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Pièces NIO</span>
+        <span class="kpi-value">{{ piecesNIO | number }}</span>
+      </div>
+      
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-icon kpi-amber">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6"  y1="20" x2="6"  y2="14"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Taux de défaut</span>
+        <span class="kpi-value">{{ mdr }}%</span>
+      </div>
+      
+    </div>
+
+    <div class="kpi-card kpi-card-wide">
+      <div class="kpi-icon kpi-teal">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Taux de conformité</span>
+        <span class="kpi-value">{{ conformityRate }}%</span>
+      </div>
+      <div class="conformity-bar">
+        <div class="conformity-fill" [style.width.%]="conformityRate"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skeleton loading -->
+  <div class="kpi-grid" *ngIf="isLoading">
+    <div class="kpi-card skeleton" *ngFor="let i of [1,2,3,4]"></div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="charts-row">
+
+    <!-- Évolution inspections -->
+    <div class="chart-card chart-lg">
+      <div class="chart-header">
+        <h3>Évolution des inspections</h3>
+        <div class="chart-legend">
+          <span class="legend-ok">OK</span>
+          <span class="legend-nio">NIO</span>
+        </div>
+      </div>
+      <div class="bar-chart" *ngIf="chartData.length > 0">
+        <div class="bar-group" *ngFor="let d of chartData">
+          <div class="bars">
+            <div class="bar-ok"
+                 [style.height.%]="getBarHeight(d.ok, chartData, 'ok')"
+                 [title]="'OK: ' + d.ok">
+            </div>
+            <div class="bar-nio"
+                 [style.height.%]="getBarHeight(d.nio, chartData, 'nio')"
+                 [title]="'NIO: ' + d.nio">
+            </div>
+          </div>
+          <span class="bar-label">{{ d.date }}</span>
+        </div>
+      </div>
+      <div class="empty-chart" *ngIf="chartData.length === 0">
+        Aucune donnée disponible
+      </div>
+    </div>
+
+    <!-- Répartition défauts -->
+    <div class="chart-card chart-sm">
+      <div class="chart-header">
+        <h3>Répartition des défauts</h3>
+      </div>
+      <div class="defects-list" *ngIf="defectsDistribution.length > 0">
+        <div class="defect-row" *ngFor="let d of defectsDistribution; let i = index">
+          <div class="defect-rank">{{ i + 1 }}</div>
+          <span class="defect-type">{{ d.type }}</span>
+          <div class="defect-bar-wrap">
+            <div class="defect-bar"
+                 [style.width.%]="getBarHeight(d.total, defectsDistribution, 'total')">
+            </div>
+          </div>
+          <strong class="defect-count">{{ d.total }}</strong>
+        </div>
+      </div>
+      <div class="empty-chart" *ngIf="defectsDistribution.length === 0">
+        Aucun défaut trouvé
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Top lots table -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <h3>Top 5 lots par taux de défaut</h3>
+    </div>
+    <table class="data-table" *ngIf="topLots.length > 0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Lot</th>
+          <th>Client</th>
+          <th>Taux MDR</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let lot of topLots; let i = index">
+          <td class="rank-cell">{{ i + 1 }}</td>
+          <td class="lot-cell">{{ lot.lot }}</td>
+          <td>
+            <span class="client-badge"
+                  [class.badge-bmw]="lot.client === 'BMW'"
+                  [class.badge-rr]="lot.client === 'Range Rover'">
+              {{ lot.client }}
+            </span>
+          </td>
+          <td>
+            <div class="mdr-cell">
+              <div class="mdr-bar-bg">
+                <div class="mdr-bar-fill"
+                     [style.width.%]="lot.mdr"
+                     [class.mdr-high]="lot.mdr > 15"
+                     [class.mdr-med]="lot.mdr > 10 && lot.mdr <= 15"
+                     [class.mdr-low]="lot.mdr <= 10">
+                </div>
+              </div>
+              <span class="mdr-val">{{ lot.mdr }}%</span>
+            </div>
+          </td>
+          <td>
+            <span class="status-pill"
+                  [class.status-high]="lot.mdr > 15"
+                  [class.status-med]="lot.mdr > 10 && lot.mdr <= 15"
+                  [class.status-ok]="lot.mdr <= 10">
+              {{ lot.mdr > 15 ? 'Critique' : lot.mdr > 10 ? 'Attention' : 'Normal' }}
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="empty-chart" *ngIf="topLots.length === 0">
+      Aucune donnée disponible
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>CasFrontend [2.0.0] — Scan Pièce</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f0f0; }
+
+    .topbar {
+      background: #1a7bc4;
+      color: white;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .container {
+      display: flex;
+      height: calc(100vh - 36px);
+    }
+
+    .sidebar {
+      width: 130px;
+      background: #2ecc71;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      border-right: 1px solid #ccc;
+    }
+
+    .sidebar .letter {
+      font-size: 72px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .sidebar .operator-info {
+      margin-top: 20px;
+      text-align: center;
+      color: white;
+      font-size: 11px;
+    }
+
+    .content {
+      flex: 1;
+      padding: 30px;
+    }
+
+    .content h2 {
+      font-size: 16px;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    .content p {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    .scan-box {
+      background: white;
+      border: 2px dashed #1a7bc4;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .scan-box input {
+      width: 300px;
+      height: 40px;
+      font-size: 16px;
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+
+    .scan-box p {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    .btn-scan {
+      width: 300px;
+      height: 44px;
+      background: #1a7bc4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 4px;
+      margin-top: 12px;
+    }
+
+    .btn-scan:hover { background: #1565a8; }
+
+    .piece-info {
+      background: white;
+      border-left: 4px solid #2ecc71;
+      border-radius: 6px;
+      padding: 16px 20px;
+      display: none;
+    }
+
+    .piece-info h3 {
+      color: #2ecc71;
+      margin-bottom: 10px;
+    }
+
+    .piece-info table {
+      font-size: 13px;
+      width: 100%;
+    }
+
+    .piece-info td {
+      padding: 4px 8px;
+    }
+
+    .piece-info td:first-child {
+      color: #888;
+      width: 140px;
+    }
+
+    .btn-inspect {
+      width: 300px;
+      height: 44px;
+      background: #27ae60;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 4px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .message {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #ddd;
+      font-size: 11px;
+      padding: 4px 10px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">CasFrontend [2.0.0] — IA Intégration</div>
+
+<div class="container">
+  <!-- Sidebar verte — opérateur connecté -->
+  <div class="sidebar">
+    <div class="letter">D</div>
+    <div class="operator-info" id="operatorInfo">
+      Chargement...
+    </div>
+  </div>
+
+  <!-- Contenu -->
+  <div class="content">
+    <h2>Scanner la pièce</h2>
+    <p>Scannez le QR code ou entrez l'identifiant de la pièce manuellement.</p>
+
+    <div class="scan-box">
+      <input type="text" id="pieceInput"
+             placeholder="EX: P-2026-05-001"
+             onkeydown="if(event.key==='Enter') scanPiece()">
+      <p>Scanner le QR code ou entrer manuellement</p>
+      <button class="btn-scan" onclick="scanPiece()">
+        🔍 Scanner / Valider
+      </button>
+    </div>
+
+    <!-- Info pièce trouvée -->
+    <div class="piece-info" id="pieceInfo">
+      <h3>✅ Pièce reconnue</h3>
+      <table>
+        <tr>
+          <td>ID Pièce</td>
+          <td id="infoPiece">—</td>
+        </tr>
+        <tr>
+          <td>Référence</td>
+          <td id="infoRef">—</td>
+        </tr>
+        <tr>
+          <td>Type</td>
+          <td id="infoType">—</td>
+        </tr>
+        <tr>
+          <td>Lot</td>
+          <td id="infoLot">—</td>
+        </tr>
+      </table>
+    </div>
+
+    <button class="btn-inspect" id="btnInspect"
+            onclick="lancerInspection()">
+      📷 Lancer l'inspection IA
+    </button>
+
+    <div class="message" id="message"></div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  Opérateur connecté — En attente de scan...
+</div>
+
+<script>
+  const API = 'http://localhost:3000/api/hmi';
+  const session = JSON.parse(localStorage.getItem('session') || '{}');
+  let currentPiece = null;
+
+  // Afficher info opérateur
+  if (session.prenom) {
+    document.getElementById('operatorInfo').innerHTML =
+      `<strong>${session.prenom}</strong><br>${session.client || ''}`;
+  } else {
+    // Pas de session → retour login
+    window.location.href = 'index.html';
+  }
+
+  async function scanPiece() {
+  const id_piece = document.getElementById('pieceInput').value.trim();
+  if (!id_piece) return;
+
+  // Sauvegarder et rediriger vers inspection
+  const lot = JSON.parse(localStorage.getItem('currentLot') || '{}');
+  const gp  = JSON.parse(localStorage.getItem('currentGP')  || '{}');
+
+  localStorage.setItem('currentPiece', JSON.stringify({
+    id_piece        : id_piece,
+    id_lot          : lot.id_lot          || '',
+    id_grande_piece : gp.id_grande_piece  || '',
+    reference_piece : `REF-${id_piece}`,
+    type_piece      : 'Accoudoir BMW'
+  }));
+
+  document.getElementById('infoPiece').textContent = id_piece;
+  document.getElementById('infoRef').textContent   = `REF-${id_piece}`;
+  document.getElementById('infoType').textContent  = 'Accoudoir BMW';
+  document.getElementById('infoLot').textContent   = lot.id_lot || '—';
+
+  document.getElementById('pieceInfo').style.display  = 'block';
+  document.getElementById('btnInspect').style.display = 'block';
+  document.getElementById('statusBar').textContent    =
+    `Pièce ${id_piece} prête — Cliquez Lancer l'inspection`;
+
+  currentPiece = {
+    id_piece,
+    id_lot          : lot.id_lot         || '',
+    id_grande_piece : gp.id_grande_piece || '',
+  };
+}
+
+  async function lancerInspection() {
+  if (!currentPiece) return;
+
+  document.getElementById('btnInspect').disabled    = true;
+  document.getElementById('btnInspect').textContent = '⏳ Analyse en cours...';
+  document.getElementById('statusBar').textContent  = '📷 Analyse IA en cours...';
+
+  try {
+    const res = await fetch(`${API}/inspection-auto`, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({
+        image_base64    : '',
+        id_piece        : currentPiece.id_piece,
+        id_lot          : currentPiece.id_lot,
+        id_grande_piece : currentPiece.id_grande_piece,
+        id_session      : session.id_session
+      })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      localStorage.setItem('resultat', JSON.stringify(data));
+      window.location.href = 'result.html';
+    } else {
+      showError('Erreur inspection : ' + (data.message || ''));
+      document.getElementById('btnInspect').disabled    = false;
+      document.getElementById('btnInspect').textContent = '📷 Lancer l\'inspection IA';
+    }
+
+  } catch (err) {
+    showError('Erreur connexion : ' + err.message);
+    document.getElementById('btnInspect').disabled    = false;
+    document.getElementById('btnInspect').textContent = '📷 Lancer l\'inspection IA';
+  }
+}
+
+  function showError(msg) {
+    const el = document.getElementById('message');
+    el.textContent  = msg;
+    el.className    = 'message error';
+    document.getElementById('statusBar').textContent = msg;
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,232 @@
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  background: #f8f7f4;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Panneau gauche ── */
+.login-left {
+  width: 44%;
+  background: #0f2744;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px 40px;
+}
+
+.brand-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  background: #1a4a7c;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.brand-group {
+  color: #6b9ac4;
+  font-size: 11px;
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+}
+
+.brand-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.brand-body h2 {
+  color: #fff;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 14px;
+}
+
+.brand-body p {
+  color: #7aabce;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.brand-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-box {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px 20px;
+  flex: 1;
+}
+
+.stat-num {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.stat-label {
+  color: #6b9ac4;
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+/* ── Panneau droit ── */
+.login-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.greeting-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #e8f4fd;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 28px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a5c96;
+}
+
+.card-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f2744;
+  margin-bottom: 4px;
+}
+
+.card-sub {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 28px;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.form-group input {
+  width: 100%;
+  height: 46px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 14px;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  border-color: #1a7cc4;
+  box-shadow: 0 0 0 3px rgba(26, 124, 196, 0.1);
+}
+
+.form-group input.input-error {
+  border-color: #fca5a5;
+}
+
+.form-group input::placeholder {
+  color: #94a3b8;
+}
+
+.login-btn {
+  width: 100%;
+  height: 48px;
+  background: #0f2744;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s, transform 0.1s;
+  letter-spacing: 0.2px;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: #1a3d6b;
+}
+
+.login-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-dots::after {
+  content: '';
+  animation: dots 1.2s steps(3, end) infinite;
+}
+
+@keyframes dots {
+  0%   { content: ''; }
+  33%  { content: '.'; }
+  66%  { content: '..'; }
+  100% { content: '...'; }
+}
+
+.error-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  padding: 11px 14px;
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 14px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .login-left { display: none; }
+  .login-right { padding: 24px; }
+}

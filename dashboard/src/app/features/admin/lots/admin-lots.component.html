@@ -1,0 +1,225 @@
+<div class="admin-lots-page">
+
+  <!-- En-tête -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Gestion des lots</h1>
+      <p class="page-sub">Créer, modifier et supprimer les lots de production</p>
+    </div>
+    <button class="btn-create" (click)="openCreate()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nouveau lot
+    </button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card accent-blue">
+      <div class="kpi-icon kpi-blue">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">TOTAL LOTS</span>
+        <span class="kpi-value">{{ lots.length }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card accent-green">
+      <div class="kpi-icon kpi-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">LOTS TERMINÉS</span>
+        <span class="kpi-value">{{ lotsTermines }}</span>
+      </div>
+    </div>
+
+    <div class="kpi-card accent-amber">
+      <div class="kpi-icon kpi-amber">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">EN COURS</span>
+        <span class="kpi-value">{{ lotsEnCours }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters-bar">
+    <input type="text" [(ngModel)]="searchTerm" (input)="applyFilters()"
+           placeholder="🔍  Rechercher un lot..." class="search-input"/>
+    <select [(ngModel)]="filterClient" (change)="applyFilters()">
+      <option value="">Tous les clients</option>
+      <option value="BMW">BMW</option>
+      <option value="LandRover">Land Rover</option>
+    </select>
+    <select [(ngModel)]="filterStatut" (change)="applyFilters()">
+      <option value="">Tous les statuts</option>
+      <option value="EN_COURS">En cours</option>
+      <option value="TERMINE">Terminé</option>
+    </select>
+    <button class="btn-reset" (click)="resetFilters()">✕ Réinitialiser</button>
+  </div>
+
+  <!-- Tableau -->
+  <div class="table-card">
+    <div class="table-header">
+      <h3 class="table-title">Liste des lots</h3>
+      <span class="count-badge">{{ filteredLots.length }} lots</span>
+    </div>
+
+    <table class="data-table" *ngIf="filteredLots.length > 0">
+      <thead>
+        <tr>
+          <th>Référence</th>
+          <th>Client</th>
+          <th>Date création</th>
+          <th>Grandes pièces</th>
+          <th>Statut</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let lot of filteredLots">
+          <td class="lot-ref">{{ lot.reference || lot.id_lot }}</td>
+          <td>
+            <span class="client-badge"
+                  [class.badge-bmw]="lot.client === 'BMW'"
+                  [class.badge-lr]="lot.client !== 'BMW'">
+              {{ lot.client === 'LandRover' ? 'Land Rover' : lot.client }}
+            </span>
+          </td>
+          <td class="date-cell">{{ lot.date_creation | date:'dd/MM/yyyy' }}</td>
+          <td class="center-cell">{{ lot.nb_grandes_pieces }}</td>
+          <td>
+            <span class="status-pill"
+                  [class.status-ok]="lot.statut === 'TERMINE'"
+                  [class.status-progress]="lot.statut === 'EN_COURS'">
+              {{ lot.statut === 'TERMINE' ? 'Terminé' : 'En cours' }}
+            </span>
+          </td>
+          <td class="col-actions">
+            <button class="btn-edit" (click)="openEdit(lot)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Modifier
+            </button>
+            <button class="btn-delete" (click)="confirmDelete(lot)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+              Supprimer
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="empty-state" *ngIf="filteredLots.length === 0">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none"
+           stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8"/>
+      </svg>
+      <p>Aucun lot trouvé</p>
+    </div>
+  </div>
+
+  <!-- MODAL Créer / Modifier -->
+  <div class="modal-overlay" *ngIf="showFormModal" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title">{{ isEditing ? 'Modifier le lot' : 'Nouveau lot' }}</h2>
+          <p class="modal-sub">{{ isEditing ? 'Mettre à jour les informations du lot' : 'Remplir les informations du nouveau lot' }}</p>
+        </div>
+        <button class="modal-close" (click)="closeModal()">✕</button>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Référence lot <span class="required">*</span></label>
+          <input type="text" [(ngModel)]="form.reference"
+                 placeholder="Ex: LOT-2026-001"
+                 [class.input-error]="formErrors.reference"/>
+          <span class="field-error" *ngIf="formErrors.reference">{{ formErrors.reference }}</span>
+        </div>
+        <div class="form-group">
+          <label>Client <span class="required">*</span></label>
+          <select [(ngModel)]="form.client" [class.input-error]="formErrors.client">
+            <option value="">Sélectionner un client</option>
+            <option value="BMW">BMW</option>
+            <option value="LandRover">Land Rover</option>
+          </select>
+          <span class="field-error" *ngIf="formErrors.client">{{ formErrors.client }}</span>
+        </div>
+        <div class="form-group">
+          <label>Date de création <span class="required">*</span></label>
+          <input type="date" [(ngModel)]="form.date_creation"
+                 [class.input-error]="formErrors.date_creation"/>
+          <span class="field-error" *ngIf="formErrors.date_creation">{{ formErrors.date_creation }}</span>
+        </div>
+        <div class="form-group">
+          <label>Statut</label>
+          <select [(ngModel)]="form.statut">
+            <option value="EN_COURS">En cours</option>
+            <option value="TERMINE">Terminé</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeModal()">Annuler</button>
+        <button class="btn-save" (click)="saveLot()" [disabled]="isSaving">
+          {{ isSaving ? 'Enregistrement...' : (isEditing ? '💾 Enregistrer' : '✚ Créer le lot') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL Supprimer -->
+  <div class="modal-overlay" *ngIf="showDeleteModal" (click)="closeModal()">
+    <div class="modal-card modal-sm" (click)="$event.stopPropagation()">
+      <div class="delete-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+             stroke="#dc2626" stroke-width="2" stroke-linecap="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </div>
+      <h2 class="delete-title">Supprimer ce lot ?</h2>
+      <p class="delete-sub">
+        Le lot <strong>{{ lotToDelete?.reference }}</strong> sera définitivement supprimé.
+        Cette action est irréversible.
+      </p>
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeModal()">Annuler</button>
+        <button class="btn-danger" (click)="deleteLot()" [disabled]="isSaving">
+          {{ isSaving ? 'Suppression...' : 'Supprimer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

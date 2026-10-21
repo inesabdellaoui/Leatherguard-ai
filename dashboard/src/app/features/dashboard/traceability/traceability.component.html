@@ -1,0 +1,175 @@
+<div class="trace-page">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Traçabilité</h1>
+      <p class="page-sub">Recherche et suivi de chaque pièce inspectée par le modèle YOLOv8</p>
+    </div>
+  </div>
+
+  <!-- Barre de recherche principale -->
+  <div class="search-hero">
+    <div class="search-input-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        [(ngModel)]="searchQuery"
+        placeholder="Référence pièce, ID inspection..."
+        (keyup.enter)="search()"
+      />
+      <button class="btn-search" (click)="search()">Rechercher</button>
+    </div>
+  </div>
+
+  <!-- Filtres avancés -->
+  <div class="filters-bar">
+    <div class="filter-item">
+      <label>Client</label>
+      <select [(ngModel)]="selectedClient">
+        <option value="">Tous</option>
+        <option value="C001">BMW</option>
+        <option value="C002">Range Rover</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Lot</label>
+      <input type="text" [(ngModel)]="selectedLot" placeholder="Ex: LOT-2025-..."/>
+    </div>
+    <div class="filter-item">
+      <label>Résultat</label>
+      <select [(ngModel)]="selectedResult">
+        <option value="">Tous</option>
+        <option value="OK">OK</option>
+        <option value="NIO">NIO</option>
+      </select>
+    </div>
+    <div class="filter-item">
+      <label>Du</label>
+      <input type="date" [(ngModel)]="startDate"/>
+    </div>
+    <div class="filter-item">
+      <label>Au</label>
+      <input type="date" [(ngModel)]="endDate"/>
+    </div>
+    <button class="btn-filter" (click)="search()">Filtrer</button>
+    <button class="btn-reset"  (click)="reset()">✕ Reset</button>
+  </div>
+
+  <!-- Résultats -->
+  <div class="results-header" *ngIf="hasSearched && !isLoading">
+    <span class="results-count">{{ results.length }} pièce(s) trouvée(s)</span>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-grid" *ngIf="isLoading">
+    <div class="piece-card skeleton" *ngFor="let i of [1,2,3,4,5,6]"></div>
+  </div>
+
+  <!-- Grille résultats -->
+  <div class="pieces-grid" *ngIf="!isLoading && results.length > 0">
+    <div class="piece-card" *ngFor="let p of results"
+         [class.card-nio]="p.result === 'NIO'"
+         [class.card-ok]="p.result === 'OK'">
+
+      <!-- Image -->
+      <div class="card-image">
+        <img *ngIf="p.image_path"
+             [src]="getImageUrl(p.image_path)"
+             [alt]="p.reference_piece"
+             (error)="$any($event.target).src='assets/images/no-image.png'"/>
+        <div class="no-image" *ngIf="!p.image_path">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+               stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <span>Image en attente</span>
+        </div>
+
+        <span class="result-badge"
+              [class.badge-ok]="p.result === 'OK'"
+              [class.badge-nio]="p.result === 'NIO'">
+          {{ p.result }}
+        </span>
+
+        <span class="confidence-chip" *ngIf="p.confidence">
+          {{ (p.confidence * 100).toFixed(1) }}%
+        </span>
+      </div>
+
+      <!-- Infos -->
+      <div class="card-body">
+        <div class="card-ref">{{ p.reference_piece || p.id_piece }}</div>
+        <div class="card-meta">
+          <span class="meta-item">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            </svg>
+            {{ p.id_lot }}
+          </span>
+          <span class="meta-item">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            {{ p.client }}
+          </span>
+          <span class="meta-item">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            {{ p.date_inspection | date:'dd/MM/yyyy' }}
+          </span>
+        </div>
+
+        <div class="defauts-count" *ngIf="p.result === 'NIO'">
+          <span class="defaut-pill">{{ p.nb_defauts }} défaut(s)</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card-actions">
+        <button class="btn-act btn-img"
+                *ngIf="p.result === 'NIO' && p.image_path"
+                (click)="goToNioImage(p.id_inspection)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+          Image NIO
+        </button>
+        <button class="btn-act btn-report" (click)="goToRapport(p.id_piece)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Rapport
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Empty -->
+  <div class="empty-state" *ngIf="!isLoading && hasSearched && results.length === 0">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+         stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <p>Aucune pièce trouvée</p>
+    <span>Modifiez vos critères de recherche</span>
+  </div>
+
+</div>

@@ -1,0 +1,55 @@
+# ---------- Dependencies & builds ----------
+node_modules/
+dist/
+build/
+.angular/
+coverage/
+.nyc_output/
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ---------- Secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Industrial data (DRÄXLMAIER property — never publish) ----------
+uploads/
+ia-service/models/*
+!ia-service/models/README.md
+ia-service/test_images/
+ia-service/shap_outputs/
+dataset/
+datasets/
+*.pt
+*.pth
+*.onnx
+*.faiss
+*.pkl
+*.npy
+*.jpg
+*.jpeg
+*.JPG
+*.bmp
+*.zip
+
+# ---------- Logs & OS ----------
+*.log
+logs/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- Editors ----------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Trunk linter cache
+.trunk/

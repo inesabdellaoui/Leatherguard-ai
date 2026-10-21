@@ -1,0 +1,252 @@
+<div class="rapport-page">
+
+  <!-- Toolbar (masquée à l'impression) -->
+  <div class="toolbar no-print">
+    <div class="toolbar-left">
+      <h1 class="page-title">Rapport d'inspection</h1>
+      <p class="page-sub">Généré le {{ reportDate }}</p>
+    </div>
+    <div class="toolbar-actions" *ngIf="rapport">
+      <div class="mail-wrap">
+        <input type="email" class="mail-input"
+               [(ngModel)]="recipientEmail"
+               placeholder="email@draexlmaier.com"
+               [ngModelOptions]="{standalone: true}"/>
+        <button class="btn-mail" (click)="sendMail()"
+                [disabled]="isSendingMail || !recipientEmail">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          {{ isSendingMail ? 'Envoi...' : 'Envoyer par mail' }}
+        </button>
+      </div>
+      <button class="btn-json" (click)="exportJSON()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export JSON
+      </button>
+      <button class="btn-pdf" (click)="exportPDF()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Export PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="mail-success no-print" *ngIf="mailSent">
+    ✅ Rapport envoyé par email avec succès
+  </div>
+
+  <!-- Loading -->
+  <div class="state-center" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <span>Chargement du rapport...</span>
+  </div>
+
+  <div class="state-center error" *ngIf="hasError && !isLoading">
+    ⚠️ Impossible de charger le rapport. Vérifiez l'identifiant de la pièce.
+  </div>
+
+  <!-- ══════════ RAPPORT IMPRIMABLE ══════════ -->
+  <div class="rapport-doc" *ngIf="rapport && !isLoading" id="rapport-content">
+
+    <!-- En-tête rapport -->
+    <div class="doc-header">
+      <div class="doc-brand">
+        <div class="doc-logo">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <rect x="2" y="5" width="18" height="12" rx="2"
+                  stroke="white" stroke-width="1.5" fill="none"/>
+            <path d="M6 10L9 13L16 7" stroke="#5be4a4" stroke-width="2"
+                  fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="doc-brand-name">CuirQuality · DRÄXLMAIER</div>
+          <div class="doc-brand-sub">Système de contrôle qualité cuir — YOLOv8</div>
+        </div>
+      </div>
+      <div class="doc-meta">
+        <div class="doc-meta-item">
+          <span>N° Rapport</span>
+          <strong>RPT-{{ rapport.id_inspection }}</strong>
+        </div>
+        <div class="doc-meta-item">
+          <span>Date</span>
+          <strong>{{ reportDate }}</strong>
+        </div>
+        <div class="doc-meta-item">
+          <span>Résultat</span>
+          <strong class="result-tag"
+                  [class.tag-ok]="rapport.resultat === 'OK'"
+                  [class.tag-nio]="rapport.resultat === 'NIO'">
+            {{ rapport.resultat }}
+          </strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1 : Identité pièce -->
+    <div class="doc-section">
+      <div class="section-title">
+        <div class="section-num">1</div>
+        Identité de la pièce
+      </div>
+      <div class="info-grid">
+        <div class="info-row">
+          <span class="info-key">Référence pièce</span>
+          <span class="info-val mono">{{ rapport.reference_piece }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Nom pièce</span>
+          <span class="info-val">{{ rapport.nom_piece || '—' }}</span>
+        </div>
+        
+        <div class="info-row">
+          <span class="info-key">Client</span>
+          <span class="info-val">
+            <span class="client-badge"
+                  [class.badge-bmw]="rapport.client === 'BMW'"
+                  [class.badge-rr]="rapport.client !== 'BMW'">
+              {{ rapport.client }}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2 : Lot & traçabilité -->
+    <div class="doc-section">
+      <div class="section-title">
+        <div class="section-num">2</div>
+        Traçabilité du lot
+      </div>
+      <div class="info-grid">
+        <div class="info-row">
+          <span class="info-key">ID Lot</span>
+          <span class="info-val mono">{{ rapport.id_lot }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Date réception</span>
+          <span class="info-val">{{ rapport.date_reception | date:'dd/MM/yyyy' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Statut lot</span>
+          <span class="info-val">{{ rapport.statut_lot }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3 : Résultat inspection IA -->
+    <!-- Section 3 : Résultat inspection IA -->
+<div class="doc-section">
+  <div class="section-title">
+    <div class="section-num">3</div>
+    Résultat d'inspection — Modèle LeatherGuard AI
+  </div>
+  <div class="ai-result-block">
+    <div class="ai-result-left">
+      <div class="ai-result-badge"
+           [class.ai-ok]="rapport.resultat === 'IO'"
+           [class.ai-nio]="rapport.resultat === 'NIO'">
+        {{ rapport.resultat }}
+      </div>
+      <div class="ai-meta">
+        <div class="ai-meta-row">
+          <span>Date inspection</span>
+          <strong>{{ rapport.date_inspection | date:'dd/MM/yyyy HH:mm' }}</strong>
+        </div>
+        <div class="ai-meta-row" *ngIf="rapport.confidence">
+          <span>Confiance modèle</span>
+          <strong>{{ (rapport.confidence * 100).toFixed(1) }}%</strong>
+        </div>
+        <div class="ai-meta-row" *ngIf="rapport.model_version">
+          <span>Version modèle</span>
+          <strong>{{ rapport.model_version }}</strong>
+        </div>
+      </div>
+    </div>
+    <div class="ai-result-right">
+      <!-- Image inspectée -->
+      <div class="img-report-wrap" *ngIf="rapport.image_path">
+        <img [src]="getImageUrl(rapport.image_path)"
+             [alt]="rapport.reference_piece"
+             (error)="$any($event.target).src='assets/images/no-image.png'"/>
+        <div class="img-caption">Image inspectée</div>
+      </div>
+      <!-- Carte SHAP -->
+      <div class="img-report-wrap" *ngIf="rapport.shap_image_path">
+        <img [src]="getImageUrl(rapport.shap_image_path)"
+             alt="Carte SHAP"
+             (error)="$any($event.target).src='assets/images/no-image.png'"/>
+        <div class="img-caption">Carte d'explication SHAP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- Section 4 : Défauts (uniquement NIO) -->
+    <div class="doc-section" *ngIf="rapport.resultat === 'NIO' && rapport.defauts?.length > 0">
+      <div class="section-title">
+        <div class="section-num">4</div>
+        Défauts détectés
+      </div>
+      <table class="defects-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Type de défaut</th>
+            <th>Gravité</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of rapport.defauts; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td><span class="defect-tag">{{ d.type_defaut }}</span></td>
+            <td>
+              <span class="sev-badge" [ngClass]="getSevClass(d.gravite)">
+                {{ d.gravite }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 4 (OK) -->
+    <div class="doc-section ok-section" *ngIf="rapport.resultat === 'OK'">
+      <div class="section-title">
+        <div class="section-num">4</div>
+        Résultat de conformité
+      </div>
+      <div class="ok-message">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+             stroke="#16a34a" stroke-width="2" stroke-linecap="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <div>
+          <p>Pièce conforme — aucun défaut détecté</p>
+          <span>La pièce satisfait les critères de qualité DRÄXLMAIER</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pied de page rapport -->
+    <div class="doc-footer">
+      <span>DRÄXLMAIER Group · Système CuirQuality · Rapport généré automatiquement</span>
+      <span>{{ reportDate }}</span>
+    </div>
+
+  </div>
+
+</div>

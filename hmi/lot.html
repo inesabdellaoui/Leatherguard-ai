@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>CasFrontend [2.0.0] — Scan Lot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f0f0; }
+
+    .topbar {
+      background: #1a7bc4;
+      color: white;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .container {
+      display: flex;
+      height: calc(100vh - 36px - 24px);
+    }
+
+    .sidebar {
+      width: 130px;
+      background: #2ecc71;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 10px;
+      border-right: 1px solid #ccc;
+    }
+
+    .sidebar .letter {
+      font-size: 72px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .sidebar .op-info {
+      margin-top: 16px;
+      text-align: center;
+      color: white;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .content {
+      flex: 1;
+      padding: 30px;
+    }
+
+    .content h2 {
+      font-size: 16px;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    .content p.subtitle {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    .scan-box {
+      background: white;
+      border: 2px dashed #1a7bc4;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 20px;
+      max-width: 420px;
+    }
+
+    .scan-box label {
+      font-size: 12px;
+      color: #555;
+      display: block;
+      margin-bottom: 8px;
+      text-align: left;
+    }
+
+    .scan-box input {
+      width: 100%;
+      height: 42px;
+      font-size: 16px;
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      text-align: center;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      height: 44px;
+      background: #1a7bc4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 4px;
+    }
+
+    .btn-primary:hover { background: #1565a8; }
+    .btn-primary:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    .lot-info {
+      background: white;
+      border-left: 4px solid #2ecc71;
+      border-radius: 6px;
+      padding: 20px;
+      max-width: 420px;
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    .lot-info h3 {
+      color: #27ae60;
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .lot-info table {
+      width: 100%;
+      font-size: 13px;
+      border-collapse: collapse;
+    }
+
+    .lot-info td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .lot-info td:first-child {
+      color: #888;
+      width: 160px;
+    }
+
+    .btn-continue {
+      width: 100%;
+      height: 44px;
+      background: #27ae60;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      border-radius: 4px;
+      margin-top: 12px;
+      display: none;
+    }
+
+    .btn-continue:hover { background: #219a52; }
+
+    .message {
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      max-width: 420px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #ddd;
+      font-size: 11px;
+      padding: 4px 10px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">CasFrontend [2.0.0] — IA Intégration</div>
+
+<div class="container">
+  <div class="sidebar">
+    <div class="letter">D</div>
+    <div class="op-info" id="opInfo">...</div>
+  </div>
+
+  <div class="content">
+    <h2>Scanner le lot</h2>
+    <p class="subtitle">
+      Scannez le QR code du lot ou entrez son identifiant manuellement.
+    </p>
+
+    <div class="scan-box">
+      <label>Identifiant du lot</label>
+      <input type="text" id="lotInput"
+             placeholder="Ex: L001"
+             onkeydown="if(event.key==='Enter') scanLot()">
+      <button class="btn-primary" onclick="scanLot()" id="btnScan">
+        🔍 Scanner / Valider le lot
+      </button>
+    </div>
+
+    <div class="lot-info" id="lotInfo">
+      <h3>✅ Lot reconnu</h3>
+      <table>
+        <tr><td>ID Lot</td><td id="infoLot">—</td></tr>
+        <tr><td>Client</td><td id="infoClient">—</td></tr>
+        <tr><td>Date réception</td><td id="infoDate">—</td></tr>
+        <tr><td>Statut</td><td id="infoStatut">—</td></tr>
+        <tr><td>Grandes pièces</td><td id="infoGP">—</td></tr>
+      </table>
+      <button class="btn-continue" id="btnContinue"
+              onclick="continuer()">
+        ▶ Commencer l'inspection du lot
+      </button>
+    </div>
+
+    <div class="message" id="message"></div>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">
+  Prêt — En attente du scan du lot...
+</div>
+
+<script>
+  const API     = 'http://localhost:3000/api/hmi';
+  const session = JSON.parse(localStorage.getItem('session') || '{}');
+  let currentLot = null;
+
+  // Vérifier session
+  if (!session.id_operateur) {
+    window.location.href = 'index.html';
+  }
+
+  // Afficher info opérateur
+  document.getElementById('opInfo').innerHTML =
+    `<strong>${session.prenom || ''}</strong><br>
+     ${session.client || ''}<br>
+     <small>Session #${session.id_session}</small>`;
+
+  async function scanLot() {
+    const id_lot = document.getElementById('lotInput').value.trim();
+    if (!id_lot) return;
+
+    const btn = document.getElementById('btnScan');
+    btn.disabled    = true;
+    btn.textContent = '⏳ Recherche...';
+    document.getElementById('statusBar').textContent =
+      `Recherche du lot ${id_lot}...`;
+
+    try {
+      const res = await fetch(`${API}/scan-lot`, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({
+          id_lot,
+          id_operateur : session.id_operateur,
+          id_session   : session.id_session
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        currentLot = data;
+
+        // Afficher info lot
+        document.getElementById('infoLot').textContent =
+          data.id_lot;
+        document.getElementById('infoClient').textContent =
+          data.nom_client || '—';
+        document.getElementById('infoDate').textContent =
+          data.date_reception
+            ? new Date(data.date_reception).toLocaleDateString('fr-FR')
+            : '—';
+        document.getElementById('infoStatut').textContent =
+          data.statut_lot || '—';
+        document.getElementById('infoGP').textContent =
+          data.nb_grandes_pieces + ' grande(s) pièce(s)';
+
+        document.getElementById('lotInfo').style.display    = 'block';
+        document.getElementById('btnContinue').style.display= 'block';
+        document.getElementById('message').className        = 'message';
+        document.getElementById('statusBar').textContent    =
+          `Lot ${data.id_lot} reconnu — Client : ${data.nom_client}`;
+
+        // Sauvegarder lot courant
+        localStorage.setItem('currentLot', JSON.stringify(data));
+
+      } else {
+        showError(data.message || 'Lot introuvable');
+        document.getElementById('lotInfo').style.display = 'none';
+      }
+
+    } catch (err) {
+      showError('Erreur connexion serveur');
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = '🔍 Scanner / Valider le lot';
+    }
+  }
+
+  function continuer() {
+    window.location.href = 'grande-piece.html';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('message');
+    el.textContent = msg;
+    el.className   = 'message error';
+    document.getElementById('statusBar').textContent = '❌ ' + msg;
+  }
+</script>
+
+</body>
+</html>
